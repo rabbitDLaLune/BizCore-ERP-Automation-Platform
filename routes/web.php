@@ -9,6 +9,8 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\PurchaseRequestController;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -57,6 +59,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('suppliers', SupplierController::class)
         ->middleware('permission:manage suppliers');
+
+    Route::resource('purchase-requests', PurchaseRequestController::class)
+        ->middleware('permission:manage purchase requests');
+
+    Route::post('/purchase-requests/{purchaseRequest}/approve', [PurchaseRequestController::class, 'approve'])
+        ->middleware('permission:approve purchase requests')
+        ->name('purchase-requests.approve');
+
+    Route::post('/purchase-requests/{purchaseRequest}/reject', [PurchaseRequestController::class, 'reject'])
+        ->middleware('permission:approve purchase requests')
+        ->name('purchase-requests.reject');
+
+    Route::post('/purchase-requests/{purchaseRequest}/complete', [PurchaseRequestController::class, 'markCompleted'])
+        ->middleware('permission:manage purchase requests')
+        ->name('purchase-requests.complete');
 });
 
 require __DIR__ . '/auth.php';

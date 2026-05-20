@@ -40,4 +40,9 @@ class Product extends Model
     {
         return $this->quantity <= $this->reorder_level;
     }
+
+    public function purchaseRequestItems()
+    {
+        return $this->hasMany(PurchaseRequestItem::class);
+    }
 }
