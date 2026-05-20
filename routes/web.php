@@ -10,6 +10,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PurchaseRequestController;
+use App\Http\Controllers\ReportController;
 
 
 Route::get('/', function () {
@@ -74,6 +75,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/purchase-requests/{purchaseRequest}/complete', [PurchaseRequestController::class, 'markCompleted'])
         ->middleware('permission:manage purchase requests')
         ->name('purchase-requests.complete');
+
+    Route::get('/reports', [ReportController::class, 'index'])
+        ->middleware('permission:view reports')
+        ->name('reports.index');
+
+    Route::get('/reports/sales', [ReportController::class, 'sales'])
+        ->middleware('permission:view reports')
+        ->name('reports.sales');
+
+    Route::get('/reports/inventory', [ReportController::class, 'inventory'])
+        ->middleware('permission:view reports')
+        ->name('reports.inventory');
+
+    Route::get('/reports/purchase-requests', [ReportController::class, 'purchaseRequests'])
+        ->middleware('permission:view reports')
+        ->name('reports.purchase-requests');
+
+    Route::get('/reports/sales/pdf', [ReportController::class, 'salesPdf'])
+        ->middleware('permission:export reports')
+        ->name('reports.sales.pdf');
+
+    Route::get('/reports/inventory/pdf', [ReportController::class, 'inventoryPdf'])
+        ->middleware('permission:export reports')
+        ->name('reports.inventory.pdf');
+
+    Route::get('/reports/purchase-requests/pdf', [ReportController::class, 'purchaseRequestsPdf'])
+        ->middleware('permission:export reports')
+        ->name('reports.purchase-requests.pdf');
 });
 
 require __DIR__ . '/auth.php';
