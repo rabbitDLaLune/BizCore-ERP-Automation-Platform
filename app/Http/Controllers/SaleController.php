@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
+use App\Services\AuditLogService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ class SaleController extends Controller
                     'quantity' => $afterQuantity,
                 ]);
 
-                StockMovement::create([
+                $movement = StockMovement::create([
                     'product_id' => $product->id,
                     'user_id' => Auth::id(),
                     'type' => 'stock_out',
@@ -146,7 +147,25 @@ class SaleController extends Controller
                     'reference_no' => $sale->invoice_no,
                     'remarks' => 'Stock deducted from sales invoice.',
                 ]);
+
+                AuditLogService::record(
+                    'Inventory',
+                    'created',
+                    'Stock deducted from sales invoice ' . $sale->invoice_no . ' for product: ' . $product->name,
+                    $movement,
+                    null,
+                    $movement->toArray()
+                );
             }
+
+            AuditLogService::record(
+                'Sales',
+                'created',
+                'Created sales invoice: ' . $sale->invoice_no,
+                $sale,
+                null,
+                $sale->toArray()
+            );
         });
 
         return redirect()

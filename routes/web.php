@@ -11,6 +11,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AuditLogController;
 
 
 Route::get('/', function () {
@@ -103,6 +104,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/purchase-requests/pdf', [ReportController::class, 'purchaseRequestsPdf'])
         ->middleware('permission:export reports')
         ->name('reports.purchase-requests.pdf');
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])
+        ->middleware('permission:view audit logs')
+        ->name('audit-logs.index');
 });
 
 require __DIR__ . '/auth.php';

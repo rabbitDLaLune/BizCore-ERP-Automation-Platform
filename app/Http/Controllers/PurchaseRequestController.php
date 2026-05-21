@@ -6,11 +6,10 @@ use App\Models\Product;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestItem;
 use App\Models\Supplier;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class PurchaseRequestController extends Controller
 {
@@ -116,6 +115,15 @@ class PurchaseRequestController extends Controller
                     'total' => $itemData['total'],
                 ]);
             }
+
+            AuditLogService::record(
+                'Purchase Requests',
+                'created',
+                'Created purchase request: ' . $purchaseRequest->request_no,
+                $purchaseRequest,
+                null,
+                $purchaseRequest->toArray()
+            );
         });
 
         return redirect()
@@ -179,6 +187,8 @@ class PurchaseRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $purchaseRequest) {
+            $oldValues = $purchaseRequest->toArray();
+
             $estimatedTotal = 0;
             $itemsData = [];
 
@@ -216,6 +226,15 @@ class PurchaseRequestController extends Controller
                     'total' => $itemData['total'],
                 ]);
             }
+
+            AuditLogService::record(
+                'Purchase Requests',
+                'updated',
+                'Updated purchase request: ' . $purchaseRequest->request_no,
+                $purchaseRequest,
+                $oldValues,
+                $purchaseRequest->fresh()->toArray()
+            );
         });
 
         return redirect()
@@ -231,7 +250,19 @@ class PurchaseRequestController extends Controller
                 ->with('error', 'Only pending purchase requests can be deleted.');
         }
 
+        $requestNo = $purchaseRequest->request_no;
+        $oldValues = $purchaseRequest->toArray();
+
         $purchaseRequest->delete();
+
+        AuditLogService::record(
+            'Purchase Requests',
+            'deleted',
+            'Deleted purchase request: ' . $requestNo,
+            null,
+            $oldValues,
+            null
+        );
 
         return redirect()
             ->route('purchase-requests.index')
@@ -246,12 +277,23 @@ class PurchaseRequestController extends Controller
                 ->with('error', 'Only pending purchase requests can be approved.');
         }
 
+        $oldValues = $purchaseRequest->toArray();
+
         $purchaseRequest->update([
             'status' => 'approved',
             'approved_by' => Auth::id(),
             'approved_at' => now(),
             'rejection_reason' => null,
         ]);
+
+        AuditLogService::record(
+            'Purchase Requests',
+            'approved',
+            'Approved purchase request: ' . $purchaseRequest->request_no,
+            $purchaseRequest,
+            $oldValues,
+            $purchaseRequest->fresh()->toArray()
+        );
 
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)
@@ -270,12 +312,23 @@ class PurchaseRequestController extends Controller
             'rejection_reason' => ['required', 'string', 'max:1000'],
         ]);
 
+        $oldValues = $purchaseRequest->toArray();
+
         $purchaseRequest->update([
             'status' => 'rejected',
             'approved_by' => Auth::id(),
             'approved_at' => now(),
             'rejection_reason' => $validated['rejection_reason'],
         ]);
+
+        AuditLogService::record(
+            'Purchase Requests',
+            'rejected',
+            'Rejected purchase request: ' . $purchaseRequest->request_no,
+            $purchaseRequest,
+            $oldValues,
+            $purchaseRequest->fresh()->toArray()
+        );
 
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)
@@ -290,9 +343,21 @@ class PurchaseRequestController extends Controller
                 ->with('error', 'Only approved purchase requests can be marked as completed.');
         }
 
+        $oldValues = $purchaseRequest->toArray();
+
         $purchaseRequest->update([
             'status' => 'completed',
+            'completed_at' => now(),
         ]);
+
+        AuditLogService::record(
+            'Purchase Requests',
+            'completed',
+            'Completed purchase request: ' . $purchaseRequest->request_no,
+            $purchaseRequest,
+            $oldValues,
+            $purchaseRequest->fresh()->toArray()
+        );
 
         return redirect()
             ->route('purchase-requests.show', $purchaseRequest)

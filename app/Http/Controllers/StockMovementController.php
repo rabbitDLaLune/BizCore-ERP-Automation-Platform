@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,7 @@ class StockMovementController extends Controller
                 'quantity' => $afterQuantity,
             ]);
 
-            StockMovement::create([
+            $movement = StockMovement::create([
                 'product_id' => $product->id,
                 'user_id' => Auth::id(),
                 'type' => $validated['type'],
@@ -88,6 +89,15 @@ class StockMovementController extends Controller
                 'reference_no' => $validated['reference_no'] ?? null,
                 'remarks' => $validated['remarks'] ?? null,
             ]);
+
+            AuditLogService::record(
+                'Inventory',
+                'created',
+                'Recorded ' . str_replace('_', ' ', $validated['type']) . ' for product: ' . $product->name,
+                $movement,
+                null,
+                $movement->toArray()
+            );
         });
 
         return redirect()

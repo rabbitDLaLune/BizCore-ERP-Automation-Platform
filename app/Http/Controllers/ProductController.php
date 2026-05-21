@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -69,7 +70,16 @@ class ProductController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
-        Product::create($validated);
+        $product = Product::create($validated);
+
+        AuditLogService::record(
+            'Products',
+            'created',
+            'Created product: ' . $product->name,
+            $product,
+            null,
+            $product->toArray()
+        );
 
         return redirect()
             ->route('products.index')
@@ -111,7 +121,18 @@ class ProductController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
+        $oldValues = $product->toArray();
+
         $product->update($validated);
+
+        AuditLogService::record(
+            'Products',
+            'updated',
+            'Updated product: ' . $product->name,
+            $product,
+            $oldValues,
+            $product->fresh()->toArray()
+        );
 
         return redirect()
             ->route('products.index')
@@ -120,7 +141,19 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        $productName = $product->name;
+        $oldValues = $product->toArray();
+
         $product->delete();
+
+        AuditLogService::record(
+            'Products',
+            'deleted',
+            'Deleted product: ' . $productName,
+            null,
+            $oldValues,
+            null
+        );
 
         return redirect()
             ->route('products.index')
